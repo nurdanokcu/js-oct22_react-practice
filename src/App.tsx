@@ -52,6 +52,11 @@ export const App: React.FC = () => {
     setSelectedUserId(userId);
   };
 
+  const handleResetAllFilter = () => {
+    setSelectedUserId(0);
+    setQuery('');
+  };
+
   const prepareProducts = (goods: Product[], userId: number) => {
     let filteredProducts = (userId === 0
       ? goods
@@ -157,6 +162,7 @@ export const App: React.FC = () => {
                 data-cy="ResetAllButton"
                 href="#/"
                 className="button is-link is-outlined is-fullwidth"
+                onClick={handleResetAllFilter}
               >
                 Reset all filters
               </a>
