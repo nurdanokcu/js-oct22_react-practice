@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.scss';
 
 import cn from 'classnames';
@@ -6,13 +6,33 @@ import usersFromServer from './api/users';
 import productsFromServer from './api/products';
 import categoriesFromServer from './api/categories';
 
-const getOwnerById = (ownerId: number) => usersFromServer
+type User = {
+  id: number;
+  name: string;
+  sex:string;
+};
+ type Category = {
+   id: number;
+   title: string;
+   icon: string;
+   ownerId: number;
+   user: User | null;
+ };
+
+ type Product = {
+   id: number;
+   name: string;
+   categoryId: number;
+   category: Category | null;
+ };
+
+const getUserById = (ownerId: number) => usersFromServer
   .find(user => user.id === ownerId)
 || null;
 
 const categories = categoriesFromServer.map(category => ({
   ...category,
-  user: getOwnerById(category.ownerId),
+  user: getUserById(category.ownerId),
 }));
 
 const getCategoryById = (categoryId: number) => categories
@@ -24,6 +44,18 @@ const products = productsFromServer.map(product => ({
 }));
 
 export const App: React.FC = () => {
+  const [selectedUserId, setSelectedUserId] = useState(0);
+
+  const handleSelectUser = (userId: number) => {
+    setSelectedUserId(userId);
+  };
+
+  const prepareProducts = (goods: Product[], userId: number) => (userId === 0
+    ? goods
+    : goods.filter(good => good.category?.user?.id === userId));
+
+  const preparedProducts = prepareProducts(products, selectedUserId);
+
   return (
     <div className="section">
       <div className="container">
@@ -35,33 +67,24 @@ export const App: React.FC = () => {
 
             <p className="panel-tabs has-text-weight-bold">
               <a
+                className={cn({ 'is-active': selectedUserId === 0 })}
                 data-cy="FilterAllUsers"
                 href="#/"
+                onClick={() => handleSelectUser(0)}
               >
                 All
               </a>
+              {usersFromServer.map(user => (
+                <a
+                  data-cy="FilterUser"
+                  href="#/"
+                  className={cn({ 'is-active': selectedUserId === user.id })}
+                  onClick={() => handleSelectUser(user.id)}
+                >
+                  {user.name}
+                </a>
+              ))}
 
-              <a
-                data-cy="FilterUser"
-                href="#/"
-              >
-                User 1
-              </a>
-
-              <a
-                data-cy="FilterUser"
-                href="#/"
-                className="is-active"
-              >
-                User 2
-              </a>
-
-              <a
-                data-cy="FilterUser"
-                href="#/"
-              >
-                User 3
-              </a>
             </p>
 
             <div className="panel-block">
@@ -98,36 +121,15 @@ export const App: React.FC = () => {
                 All
               </a>
 
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 1
-              </a>
-
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1"
-                href="#/"
-              >
-                Category 2
-              </a>
-
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 3
-              </a>
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1"
-                href="#/"
-              >
-                Category 4
-              </a>
+              {categoriesFromServer.map(category => (
+                <a
+                  data-cy="Category"
+                  className="button mr-2 my-1 is-info"
+                  href="#/"
+                >
+                  {category.title}
+                </a>
+              ))}
             </div>
 
             <div className="panel-block">
@@ -135,7 +137,6 @@ export const App: React.FC = () => {
                 data-cy="ResetAllButton"
                 href="#/"
                 className="button is-link is-outlined is-fullwidth"
-
               >
                 Reset all filters
               </a>
@@ -144,9 +145,6 @@ export const App: React.FC = () => {
         </div>
 
         <div className="box table-container">
-          <p data-cy="NoMatchingMessage">
-            No products matching selected criteria
-          </p>
 
           <table
             data-cy="ProductTable"
@@ -205,7 +203,7 @@ export const App: React.FC = () => {
             </thead>
 
             <tbody>
-              {products.map(product => {
+              {preparedProducts.length ? (preparedProducts.map(product => {
                 const { name, category, id } = product;
 
                 return (
@@ -231,7 +229,12 @@ export const App: React.FC = () => {
                     </td>
                   </tr>
                 );
-              })}
+              })) : (
+                <p data-cy="NoMatchingMessage">
+                  No products matching selected criteria
+                </p>
+              )}
+
             </tbody>
           </table>
         </div>
