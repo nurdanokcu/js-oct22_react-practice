@@ -6,6 +6,7 @@ import cn from 'classnames';
 import usersFromServer from './api/users';
 import productsFromServer from './api/products';
 import categoriesFromServer from './api/categories';
+import { SortLink } from './SortLink';
 
 type User = {
   id: number;
@@ -45,10 +46,47 @@ const products:Product[] = productsFromServer.map(product => {
   };
 });
 
+const sortProducts = (
+  productstoSort: Product[],
+  sortField: keyof Product,
+  isReversed: boolean,
+): Product[] => {
+  const sortedProducts = [...productstoSort];
+
+  if (sortField) {
+    sortedProducts.sort((product1, product2) => {
+      switch (sortField) {
+        case 'id':
+          return Number(product1.id) - Number(product2.id);
+
+        case 'name':
+          return product1.name.localeCompare(product2.name);
+
+        case 'category':
+          return (product1.category?.title || '')
+            .localeCompare(product2.category?.title || '');
+
+        case 'user':
+          return (product1.user?.name || '')
+            .localeCompare(product2.user?.name || '');
+
+        default:
+          return 0;
+      }
+    });
+  }
+
+  return isReversed
+    ? sortedProducts.reverse()
+    : sortedProducts;
+};
+
 export const App: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState(0);
   const [query, setQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
+  const [sortField, setSortField] = useState<keyof Product | null>(null);
+  const [isReversed, setIsReversed] = useState(false);
 
   const isCategorySelected = (categoryToCheck: Category) => {
     return selectedCategories.some(
@@ -72,6 +110,24 @@ export const App: React.FC = () => {
     setSelectedCategories([]);
   };
 
+  const sortBy = (field: keyof Product) => {
+    if (field !== sortField) {
+      setSortField(field);
+      setIsReversed(false);
+
+      return;
+    }
+
+    if (!isReversed) {
+      setIsReversed(true);
+
+      return;
+    }
+
+    setSortField(null);
+    setIsReversed(false);
+  };
+
   let visibleProducts = [...products];
 
   if (selectedUserId) {
@@ -91,6 +147,10 @@ export const App: React.FC = () => {
   if (selectedCategories.length) {
     visibleProducts = visibleProducts.filter(product => selectedCategories
       .some(category => category.id === product.categoryId));
+  }
+
+  if (sortField) {
+    visibleProducts = sortProducts(visibleProducts, sortField, isReversed);
   }
 
   return (
@@ -206,44 +266,41 @@ export const App: React.FC = () => {
                   <th>
                     <span className="is-flex is-flex-wrap-nowrap">
                       ID
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort" />
-                        </span>
-                      </a>
+                      <SortLink
+                        onClick={() => sortBy('id')}
+                        isActive={sortField === 'id'}
+                        isReversed={isReversed}
+                      />
                     </span>
                   </th>
                   <th>
                     <span className="is-flex is-flex-wrap-nowrap">
                       Product
-                      <a href="#/">
-                        <span className="icon">
-                          <i
-                            data-cy="SortIcon"
-                            className="fas fa-sort-down"
-                          />
-                        </span>
-                      </a>
+                      <SortLink
+                        onClick={() => sortBy('name')}
+                        isActive={sortField === 'name'}
+                        isReversed={isReversed}
+                      />
                     </span>
                   </th>
                   <th>
                     <span className="is-flex is-flex-wrap-nowrap">
                       Category
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort-up" />
-                        </span>
-                      </a>
+                      <SortLink
+                        onClick={() => sortBy('category')}
+                        isActive={sortField === 'category'}
+                        isReversed={isReversed}
+                      />
                     </span>
                   </th>
                   <th>
                     <span className="is-flex is-flex-wrap-nowrap">
                       User
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort" />
-                        </span>
-                      </a>
+                      <SortLink
+                        onClick={() => sortBy('user')}
+                        isActive={sortField === 'user'}
+                        isReversed={isReversed}
+                      />
                     </span>
                   </th>
                 </tr>
